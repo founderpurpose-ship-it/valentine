@@ -31,10 +31,15 @@
     position:relative;
   }
 
+  /* ✅ MOBILE FIX: ensure floating layers NEVER block taps */
+  #hearts,
+  #hearts *{
+    pointer-events:none !important;
+  }
+
   #hearts{
     position: fixed;
     inset: 0;
-    pointer-events:none;
     z-index: 1;
     overflow:hidden;
   }
@@ -72,7 +77,7 @@
     inset:0;
     display:grid;
     place-items:center;
-    z-index: 80;
+    z-index: 90;
     background: rgba(0,0,0,.20);
     backdrop-filter: blur(2px);
   }
@@ -100,6 +105,10 @@
     transition: transform .12s ease, filter .2s ease;
     user-select:none;
     -webkit-tap-highlight-color: transparent;
+
+    /* ✅ MOBILE FIX: better taps + remove 300ms delays */
+    touch-action: manipulation;
+
     position: relative;
   }
   .btn:active{ transform: scale(.98); }
@@ -107,7 +116,8 @@
   .no{ background: var(--red); color:#fff; }
   .pink{ background: var(--pink); color:#fff; }
 
-  .hidden{ display:none; }
+  /* ✅ MOBILE FIX: hidden must truly disappear (no overlay click blocking) */
+  .hidden{ display:none !important; }
 
   .slider-wrap{
     text-align:left;
@@ -152,7 +162,7 @@
     inset:0;
     display:grid;
     place-items:center;
-    z-index: 70;
+    z-index: 80;
     background: rgba(0,0,0,.15);
     backdrop-filter: blur(2px);
     transform: scale(1);
@@ -342,7 +352,10 @@
     text-align:center;
     box-shadow: var(--shadow);
     position:relative;
-    z-index: 5;
+
+    /* ✅ ensure card is always above animated layers */
+    z-index: 100;
+
     opacity: 0;
     transform: translateY(8px);
     transition: opacity 650ms ease, transform 650ms ease;
@@ -359,7 +372,7 @@
     position: fixed;
     inset:0;
     pointer-events:none;
-    z-index: 90;
+    z-index: 120;
   }
   .confetti{
     position:absolute;
@@ -378,7 +391,7 @@
     left: 50%;
     bottom: -420px;
     transform: translateX(-50%);
-    z-index: 95;
+    z-index: 130;
     pointer-events:none;
     text-align:center;
     transition: bottom 1400ms ease;
@@ -446,7 +459,7 @@
   }
 
   /* =========================
-     ✅ HOLD-TO-100% CONTINUE BUTTON (NEW)
+     ✅ HOLD-TO-100% CONTINUE BUTTON
   ========================== */
   .hold-btn{
     --p: 0%;
@@ -596,7 +609,7 @@
   <div id="yay" class="hidden">
     <h2>YAY!! 🥰</h2>
     <p class="txt">You’re my Valentine 💖</p>
-    <p class="txt"><b>See You Next Week 😘</b></p>
+    <p class="txt"><b>See you soon 😘</b></p>
     <button class="btn yes" onclick="location.reload()">Replay 🔁</button>
   </div>
 </div>
@@ -705,14 +718,16 @@
   }
 
   /* =========================
-     ✅ HOLD-TO-100% CONTINUE LOGIC (NEW)
+     ✅ HOLD-TO-100% CONTINUE LOGIC (MOBILE FIXED)
   ========================== */
   function setupHoldToContinue(btn, pctEl, onComplete){
     let p = 0;
     let holding = false;
     let raf = null;
-    const INC_PER_SEC = 85;   // speed up/down feel
+    const INC_PER_SEC = 85;
     const DEC_PER_SEC = 110;
+    let lastTs = null;
+    let completed = false;
 
     function render(){
       const clamped = Math.max(0, Math.min(100, p));
@@ -721,18 +736,19 @@
     }
 
     function tick(ts){
-      if(!btn._lastTs) btn._lastTs = ts;
-      const dt = (ts - btn._lastTs) / 1000;
-      btn._lastTs = ts;
+      if(lastTs == null) lastTs = ts;
+      const dt = (ts - lastTs) / 1000;
+      lastTs = ts;
 
       if(holding){
         p += INC_PER_SEC * dt;
-        if(p >= 100){
+        if(p >= 100 && !completed){
           p = 100;
+          completed = true;
           render();
-          cancelAnimationFrame(raf);
-          raf = null;
           holding = false;
+          if(raf) cancelAnimationFrame(raf);
+          raf = null;
           sparkleDing();
           onComplete?.();
           return;
@@ -742,7 +758,7 @@
         if(p <= 0){
           p = 0;
           render();
-          cancelAnimationFrame(raf);
+          if(raf) cancelAnimationFrame(raf);
           raf = null;
           return;
         }
@@ -753,32 +769,38 @@
     }
 
     function startHold(e){
+      if(completed) return;
       e.preventDefault();
       ensureAudio();
       holding = true;
-      beep(660,0.05,"triangle",0.03);
-      btn._lastTs = null;
+      lastTs = null;
       if(!raf) raf = requestAnimationFrame(tick);
     }
 
     function endHold(e){
-      e.preventDefault();
+      if(completed) return;
+      // don’t preventDefault here globally; just end the hold
       holding = false;
-      btn._lastTs = null;
+      lastTs = null;
       if(!raf) raf = requestAnimationFrame(tick);
     }
 
     // block normal click
     btn.addEventListener("click", (e)=>e.preventDefault());
 
+    // ✅ Pointer events (modern mobile + desktop)
     btn.addEventListener("pointerdown", startHold);
     window.addEventListener("pointerup", endHold);
     window.addEventListener("pointercancel", endHold);
 
-    // mobile fallback
+    // ✅ Touch fallback (older iOS edge cases)
     btn.addEventListener("touchstart", startHold, {passive:false});
-    window.addEventListener("touchend", endHold, {passive:false});
-    window.addEventListener("touchcancel", endHold, {passive:false});
+    window.addEventListener("touchend", endHold, {passive:true});
+    window.addEventListener("touchcancel", endHold, {passive:true});
+
+    // ✅ Mouse fallback
+    btn.addEventListener("mousedown", startHold);
+    window.addEventListener("mouseup", endHold);
 
     render();
   }
@@ -958,5 +980,3 @@
 </script>
 </body>
 </html>
-
-
