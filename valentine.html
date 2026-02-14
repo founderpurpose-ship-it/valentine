@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Valentine?</title>
+
+<style>
+  body{
+    margin:0;
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    font-family: Arial, sans-serif;
+    background: linear-gradient(#ffd6e0, #f3a7b7);
+    overflow:hidden;
+    position:relative;
+  }
+
+  /* 💖 DVD-STYLE BOUNCING PHOTO (stays within screen) */
+  .floating-photo{
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 140px;          /* size of photo */
+    opacity: 0.55;         /* make it feel "background" */
+    pointer-events: none;  /* won't block clicks */
+    z-index: 0;            /* keep it behind the card but still visible */
+    border-radius: 14px;
+    box-shadow: 0 10px 25px rgba(0,0,0,.18);
+    user-select: none;
+  }
+
+  .card{
+    width:min(600px, 92vw);
+    background: rgba(255,255,255,0.95);
+    border-radius:18px;
+    padding:28px;
+    text-align:center;
+    box-shadow: 0 20px 50px rgba(0,0,0,.2);
+    position: relative;
+    z-index: 2; /* ensure card is above the bouncing photo */
+  }
+
+  h1{margin:0 0 10px; font-size:34px;}
+  p{margin:0 0 18px; font-size:18px;}
+
+  button{
+    border:none;
+    padding:12px 18px;
+    border-radius:12px;
+    font-size:16px;
+    font-weight:bold;
+    cursor:pointer;
+    margin:6px;
+  }
+
+  .continue{background:#ec4899;color:white;}
+  .yes{background:#22c55e;color:white;}
+  .no{background:#ef4444;color:white;}
+
+  .hidden{display:none;}
+</style>
+</head>
+
+<body>
+
+<!-- ✅ Put your photo in the SAME folder as this HTML file -->
+<!-- ✅ If your file name is different, change us.jpg to the exact name -->
+<img src="us.jpg" class="floating-photo" id="dvdPhoto" alt="us">
+
+<div class="card">
+
+  <!-- 💌 LETTER FIRST -->
+  <div id="letter">
+    <h1>💌 A Letter For You</h1>
+    <p>
+      Hi love ❤️<br><br>
+      Before I ask you something special, I just want you to know how much you mean to me.
+      Every moment with you makes my world brighter, calmer, and happier.
+      You make ordinary days feel magical.
+      <br><br>
+      So before anything else...
+      thank you for being you.
+    </p>
+    <button class="continue" id="continueBtn">Continue ✨</button>
+  </div>
+
+  <!-- ❤️ VALENTINE QUESTION -->
+  <div id="ask" class="hidden">
+    <h1>Will you be my Valentine? 💖</h1>
+    <p>I want to spend Valentine’s with you 🌹</p>
+    <button class="yes" id="yesBtn">Yes 💘</button>
+    <button class="no" id="noBtn">No 🙈</button>
+  </div>
+
+  <!-- 🥰 SUCCESS -->
+  <div id="yay" class="hidden">
+    <h1>YAY!! 🥰</h1>
+    <p>You’re my Valentine 💖</p>
+    <p><b>See you soon 😘</b></p>
+    <button class="yes" onclick="location.reload()">Replay 🔁</button>
+  </div>
+
+</div>
+
+<script>
+  /* ---------- Letter / buttons ---------- */
+  const continueBtn = document.getElementById("continueBtn");
+  const yesBtn = document.getElementById("yesBtn");
+  const noBtn  = document.getElementById("noBtn");
+
+  continueBtn.addEventListener("click", () => {
+    document.getElementById("letter").classList.add("hidden");
+    document.getElementById("ask").classList.remove("hidden");
+  });
+
+  yesBtn.addEventListener("click", () => {
+    document.getElementById("ask").classList.add("hidden");
+    document.getElementById("yay").classList.remove("hidden");
+  });
+
+  noBtn.addEventListener("click", () => {
+    alert("Nice try 😅 Click YES 💘");
+  });
+
+  /* ---------- DVD bounce (fixed) ---------- */
+  const img = document.getElementById("dvdPhoto");
+
+  // Start position and speed (tweak if you want)
+  let x = 40, y = 80;
+  let vx = 2.2, vy = 1.9;
+
+  // Randomize direction a little
+  vx *= Math.random() > 0.5 ? 1 : -1;
+  vy *= Math.random() > 0.5 ? 1 : -1;
+
+  function step() {
+    const W = window.innerWidth;
+    const H = window.innerHeight;
+
+    // Use real drawn size
+    const rect = img.getBoundingClientRect();
+    const iw = rect.width;
+    const ih = rect.height;
+
+    // If image isn't ready yet, keep waiting
+    if (!iw || !ih) {
+      requestAnimationFrame(step);
+      return;
+    }
+
+    x += vx;
+    y += vy;
+
+    // Bounce horizontally
+    if (x <= 0) { x = 0; vx = Math.abs(vx); }
+    if (x + iw >= W) { x = W - iw; vx = -Math.abs(vx); }
+
+    // Bounce vertically
+    if (y <= 0) { y = 0; vy = Math.abs(vy); }
+    if (y + ih >= H) { y = H - ih; vy = -Math.abs(vy); }
+
+    img.style.left = x + "px";
+    img.style.top  = y + "px";
+
+    requestAnimationFrame(step);
+  }
+
+  // Start after image loads (and also start immediately for cached images)
+  img.addEventListener("load", () => requestAnimationFrame(step));
+  requestAnimationFrame(step);
+
+  // Keep it inside bounds on resize
+  window.addEventListener("resize", () => {
+    const W = window.innerWidth;
+    const H = window.innerHeight;
+    const rect = img.getBoundingClientRect();
+    x = Math.min(Math.max(0, x), W - rect.width);
+    y = Math.min(Math.max(0, y), H - rect.height);
+  });
+</script>
+
+</body>
+</html>
